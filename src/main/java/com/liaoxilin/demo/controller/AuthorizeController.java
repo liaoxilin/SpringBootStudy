@@ -2,11 +2,11 @@ package com.liaoxilin.demo.controller;
 
 
 import com.alibaba.fastjson.JSONObject;
-import com.liaoxilin.demo.dto.AccessTokenDto;
 import com.liaoxilin.demo.dto.GithubUser;
 import com.liaoxilin.demo.mapper.UserMapper;
 import com.liaoxilin.demo.model.User;
 import com.liaoxilin.demo.provider.GithubProvider;
+import com.liaoxilin.demo.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
@@ -23,6 +23,8 @@ public class AuthorizeController {
     //把Spring容器实例化好的容器加载到当前上下文
     @Autowired
     private GithubProvider githubProvider;
+    @Autowired
+    private UserService userService;
 
 
     @Value("${github.client_id}")//去配置文件中读取其的value，
@@ -61,10 +63,8 @@ public class AuthorizeController {
             user.setToken(token);
             user.setName(githubUser.getName());
             user.setAccountId(String.valueOf(githubUser.getId()));
-            user.setGetCreate(System.currentTimeMillis());
-            user.setGetModified(user.getGetCreate());
             user.setAvatarUrl(githubUser.getAvatarUrl());
-            userMapper.insert(user);
+            userService.createOrUpdata(user);
             response.addCookie(new Cookie("token",token));
             return "redirect:/";
         }
@@ -74,5 +74,14 @@ public class AuthorizeController {
         }
 
 
+    }
+    @GetMapping("/logout")
+    public String logout(HttpServletRequest request,
+                         HttpServletResponse response){
+        request.getSession().removeAttribute("user");
+        Cookie cookie=new Cookie("token",null);
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        return "redirect:/";
     }
 }
