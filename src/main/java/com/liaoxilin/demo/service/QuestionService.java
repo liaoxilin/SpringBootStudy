@@ -2,6 +2,9 @@ package com.liaoxilin.demo.service;
 
 import com.liaoxilin.demo.dto.PaginationDto;
 import com.liaoxilin.demo.dto.QuestionDto;
+import com.liaoxilin.demo.exception.CustomizeErrorCode;
+import com.liaoxilin.demo.exception.CustomizeException;
+import com.liaoxilin.demo.mapper.QuestionExtMapper;
 import com.liaoxilin.demo.mapper.QuestionMapper;
 import com.liaoxilin.demo.mapper.UserMapper;
 import com.liaoxilin.demo.model.Question;
@@ -20,6 +23,9 @@ import java.util.List;
 public class QuestionService {
     @Autowired
     private QuestionMapper questionMapper;
+
+    @Autowired
+    private QuestionExtMapper questionExtMapper;
 
     @Autowired
     private UserMapper userMapper;
@@ -102,6 +108,9 @@ public class QuestionService {
 
     public QuestionDto getById(Integer id) {
         Question question=questionMapper.selectByPrimaryKey(id);
+        if(question ==null){
+            throw new CustomizeException(CustomizeErrorCode.QUESTION_NOT_FOUND);
+        }
         QuestionDto questionDto=new QuestionDto();
         BeanUtils.copyProperties(question,questionDto);
         User user =userMapper.selectByPrimaryKey(question.getCreator());
@@ -127,8 +136,20 @@ public class QuestionService {
 
             QuestionExample example=new QuestionExample();
             example.createCriteria().andIdEqualTo(question.getId());
-            questionMapper.updateByExampleSelective(updateQuestion,example);
+            int updated = questionMapper.updateByExampleSelective(updateQuestion,example);
+            if(updated != 1){
+                throw new CustomizeException(CustomizeErrorCode.QUESTION_NOT_FOUND);
+            }
 
         }
+    }
+
+    public void incView(Integer id) {
+
+        Question question = new Question();
+        question.setId(id);
+        question.setViewCount(1);
+        questionExtMapper.incView(question);
+
     }
 }
