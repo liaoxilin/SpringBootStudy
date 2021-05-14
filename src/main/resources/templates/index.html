@@ -10,8 +10,20 @@
     <script src="js/bootstrap.js" type="application/javascript"></script>
 
 </head>
-<body>
+<script type="application/javascript">
+    window.onload = function (){
+        debugger;
+        var closeble = window.localStorage.getItem("closeble");
+        if(closeble == true){
+            window.close();
+            window.localStorage.removeItem("closeble");
+        }
+    }
 
+</script>
+
+
+<body>
    <div th:insert="~{navigation :: nav}"></div>
    <li th:if=" ${session.user != null}">
     <div class="container-fluid main">

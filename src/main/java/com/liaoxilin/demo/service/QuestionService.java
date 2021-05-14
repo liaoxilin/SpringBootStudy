@@ -10,13 +10,16 @@ import com.liaoxilin.demo.mapper.UserMapper;
 import com.liaoxilin.demo.model.Question;
 import com.liaoxilin.demo.model.QuestionExample;
 import com.liaoxilin.demo.model.User;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.session.RowBounds;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -48,7 +51,9 @@ public class QuestionService {
         }
         paginationDto.setPagination(totalPage,page);
         Integer offset=size*(page-1);
-        List<Question> questions =questionMapper.selectByExampleWithRowbounds(new QuestionExample(),new RowBounds(offset,size));
+        QuestionExample questionExample = new QuestionExample();
+        questionExample.setOrderByClause("gmt_create desc");
+        List<Question> questions =questionMapper.selectByExampleWithRowbounds(questionExample,new RowBounds(offset,size));
         List<QuestionDto> questionDtoList=new ArrayList<>();
 
 
@@ -64,7 +69,7 @@ public class QuestionService {
         return paginationDto;
     }
 
-    public PaginationDto list(Integer userId, Integer page, Integer size) {
+    public PaginationDto list(Long userId, Integer page, Integer size) {
         PaginationDto paginationDto = new PaginationDto();
         Integer totalPage;
         QuestionExample questionExample=new QuestionExample();
@@ -106,7 +111,7 @@ public class QuestionService {
         return paginationDto;
     }
 
-    public QuestionDto getById(Integer id) {
+    public QuestionDto getById(Long id) {
         Question question=questionMapper.selectByPrimaryKey(id);
         if(question ==null){
             throw new CustomizeException(CustomizeErrorCode.QUESTION_NOT_FOUND);
@@ -123,6 +128,10 @@ public class QuestionService {
             //创建
 
             question.setGmtCreate(System.currentTimeMillis());
+            question.setGmtModified(question.getGmtCreate());
+            question.setViewCount(0);
+            question.setLikeCount(0);
+            question.setCommentCount(0);
 
             questionMapper.insert(question);
         }
@@ -144,12 +153,34 @@ public class QuestionService {
         }
     }
 
-    public void incView(Integer id) {
+    public void incView(Long id) {
 
         Question question = new Question();
         question.setId(id);
         question.setViewCount(1);
         questionExtMapper.incView(question);
 
+    }
+
+    public List<QuestionDto> selectRelated(QuestionDto queryDto) {
+        if(StringUtils.isBlank(queryDto.getTags())){
+            return new ArrayList<>();
+        }
+
+        String[] tags = StringUtils.split(queryDto.getTags(),",");
+        String regexTag = Arrays.stream(tags).collect(Collectors.joining("|"));
+        Question question=new Question();
+        question.setId(queryDto.getId());
+        question.setTags(regexTag);
+
+        List<Question> questions = questionExtMapper.selectRelated(question);
+        List<QuestionDto> questionDtos = questions.stream().map(q ->{
+            QuestionDto questionDto = new QuestionDto();
+            BeanUtils.copyProperties(q,questionDto);
+            return questionDto;
+        }).collect(Collectors.toList());
+
+
+        return questionDtos;
     }
 }

@@ -1,2 +1,5 @@
 //集成Mybatis语句
 mvn -Dmybatis.generator.overwrite=true mybatis-generator:generate
+
+//运行sql脚本
+mvn flyway:migrate
